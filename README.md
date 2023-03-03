@@ -9,4 +9,15 @@ This study represents an important contribution to the emerging field of circula
 
 ## Results of the index
 
+Circular City Index for Spain:
+![image](https://user-images.githubusercontent.com/94464752/222678031-25084ab3-574c-4923-86f7-913d2d29921b.png)
+
+Local R2:
+![image](https://user-images.githubusercontent.com/94464752/222678151-da459c88-93b3-480c-988f-4a0fa456ba67.png)
+
+Relative Errors of GWR Model:
+![image](https://user-images.githubusercontent.com/94464752/222678213-7413d395-cbd3-4b1f-9745-f2abbbb8f36a.png)
+
+Local Moran's I Cluster Map:
+![image](https://user-images.githubusercontent.com/94464752/222678350-a7d0ced4-8dbc-4412-bfa4-22ce96d6a552.png)
 
