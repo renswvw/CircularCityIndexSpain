@@ -1,0 +1,16 @@
+El archivo lineas_limite_gml.zip contiene los siguientes elementos:
+lineas_limite_gml.zip file contains the following elements:
+1. AdministrativeBoundary: límites de unidades administrativas (tipo lineal) divididos por tipo:
+	- 1stOrder: líneas de frontera
+	- 2ndOrder: líneas de comunidades autónomas
+	- 3rdOrder: líneas de provincias
+	- 4thOrder: líneas de municipios
+
+2. AdministrativeUnit: unidades administrativas (tipo superficial) divididas por tipo:
+	- 1stOrder: país
+	- 2ndOrder: comunidades autónomas
+	- 3rdOrder: provincias
+	- 4thOrder: municipios
+
+Cada archivo .gml contiene como máximo 10000 entidades.
+Each .gml file contains a maximum of 10000 entities.
