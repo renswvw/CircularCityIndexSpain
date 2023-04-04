@@ -11,7 +11,6 @@ _What is the level of preparedness of Spanish municipalities towards urban circu
 This study represents an important contribution to the emerging field of circular economies by modifying and testing a universal set of strategies for quantifying and evaluating sustainable development challenges at the municipal level. This development is important given the growing necessity for a more comprehensive and universal approach for quantifying and evaluating sustainable development challenges at the municipal level. The modified Circular City Index methodology in combination with the non-spatial and spatial models developed in this study will provide a tool for policymakers to in-depth understand local contexts, identify areas of improvement and align their policies with European targets, as the index incorporates aspects of the European Union’s Green Deal. The transparency, reproducibility and scalability of the results will ensure that all stakeholders can benefit from this open data approach, leading to more effective and sustainable solutions to local challenges. 
 
 ![image](https://user-images.githubusercontent.com/94464752/222642905-174f695b-26ca-4a77-b1ea-ebc7d6bbda57.png)
-![image](https://user-images.githubusercontent.com/94464752/222643005-85dd9ab6-22c4-46b7-8959-5901666b6cd5.png)
 
 ## Conclusion
 
@@ -34,7 +33,7 @@ Local Moran's I Cluster Map:
 
 ### GWR Model
 Most imporant feature per municipality:
-![image](https://user-images.githubusercontent.com/94464752/229825833-e4d8ec18-7e7a-44b4-bd1a-c2f28e26311b.png)
+![most_important_feature](https://user-images.githubusercontent.com/94464752/229826445-935c29b9-49ee-485a-b9e8-3c9e0a17a3b2.png)
 
 Model Fit (Local R2):
 ![image](https://user-images.githubusercontent.com/94464752/222678151-da459c88-93b3-480c-988f-4a0fa456ba67.png)
