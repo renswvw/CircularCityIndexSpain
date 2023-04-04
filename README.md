@@ -22,21 +22,21 @@ The study findings provide a foundation for future research on this topic. When 
 
 ## Results of the index
 ### Circular City Index
-Circular City Index for Spain:
+_Circular City Index for Spain:_
 ![image](https://user-images.githubusercontent.com/94464752/222678031-25084ab3-574c-4923-86f7-913d2d29921b.png)
 
-Circular City Index for Spain - Per CCI level:
+_Circular City Index for Spain - Per CCI level:_
 ![image](https://user-images.githubusercontent.com/94464752/229825374-2d375fe1-2d7c-42de-a7cb-c240bc1bf6ae.png)
 
-Local Moran's I Cluster Map:
+_Local Moran's I Cluster Map:_
 ![image](https://user-images.githubusercontent.com/94464752/222678350-a7d0ced4-8dbc-4412-bfa4-22ce96d6a552.png)
 
 ### GWR Model
-Most imporant feature per municipality:
+_Most imporant feature per municipality:_
 ![most_important_feature](https://user-images.githubusercontent.com/94464752/229826445-935c29b9-49ee-485a-b9e8-3c9e0a17a3b2.png)
 
-Model Fit (Local R2):
+_Model Fit (Local R2):_
 ![image](https://user-images.githubusercontent.com/94464752/222678151-da459c88-93b3-480c-988f-4a0fa456ba67.png)
 
-Relative Errors:
+_Relative Errors:_
 ![image](https://user-images.githubusercontent.com/94464752/222678213-7413d395-cbd3-4b1f-9745-f2abbbb8f36a.png)
