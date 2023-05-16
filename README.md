@@ -23,20 +23,20 @@ The study findings provide a foundation for future research on this topic. When 
 ## Results of the index
 ### Circular City Index
 _Circular City Index for Spain:_
-![image](https://user-images.githubusercontent.com/94464752/222678031-25084ab3-574c-4923-86f7-913d2d29921b.png)
+![CCI_all](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/9c3b8ade-5d1e-4aea-a5f0-4aae216825da) 
 
 _Circular City Index for Spain - Per CCI level:_
-![image](https://user-images.githubusercontent.com/94464752/229825374-2d375fe1-2d7c-42de-a7cb-c240bc1bf6ae.png)
+![CCI_areamap](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/2fee55c3-60b0-495b-8f00-b3b8bd71679e)
 
 _Local Moran's I Cluster Map:_
-![image](https://user-images.githubusercontent.com/94464752/222678350-a7d0ced4-8dbc-4412-bfa4-22ce96d6a552.png)
+![moranI](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/441257ce-f9a4-495d-a142-8d20d243ea27)
 
 ### GWR Model
 _Most imporant feature per municipality:_
-![most_important_feature](https://user-images.githubusercontent.com/94464752/229826445-935c29b9-49ee-485a-b9e8-3c9e0a17a3b2.png)
+![most_important_features](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/fc54b149-de63-4341-a725-933b90cc3d66)
 
 _Model Fit (Local R2):_
-![image](https://user-images.githubusercontent.com/94464752/222678151-da459c88-93b3-480c-988f-4a0fa456ba67.png)
+![localr2](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/4aaf56bd-008e-4c1f-aa4d-5660deb9ac7c)
 
 _Relative Errors:_
-![image](https://user-images.githubusercontent.com/94464752/222678213-7413d395-cbd3-4b1f-9745-f2abbbb8f36a.png)
+![gwrresiduals](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/cf4fc869-1d67-43b5-8afa-09eb49e95996)
