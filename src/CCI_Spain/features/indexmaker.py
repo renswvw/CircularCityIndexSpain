@@ -1,4 +1,3 @@
-# 03. Index Weighting & Formula
 import geopandas as gpd
 import numpy as np
 import os
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 def IndexMaker():
     # papermill parameters cell
     OUTPUT_WARNINGS = False
-    SAVE_FIGS = True
+    SAVE_FIGS = False
     SAVE_INDEX = True
     ALTERNATIVE_KPI_WEIGHT = True # if False: original weightgs, but maximum value in thesis could be 0.76 instead of 1.0
     ALTERNATIVE_AREA_COMPUTATION = True # if False: original area computation equations are used (W2 is strange defined)
@@ -62,8 +61,24 @@ def IndexMaker():
     gdf = gpd.read_file(SPATIALIZED_INTERIMDATA)
     gdf.head()
 
+    # Maximise output score for ECR2
+    gdf.loc[gdf['ECR2'] == 0.4, 'ECR2'] = 2 # --> Mayors Adapt
+    gdf.loc[gdf['ECR2'] == 0.6, 'ECR2'] = 3 # --> 2030
+    gdf.loc[gdf['ECR2'] == 0.7, 'ECR2'] = 3 # --> 2030
+    gdf.loc[gdf['ECR2'] == 0.9, 'ECR2'] = 4 # --> 2050
+    gdf.loc[gdf['ECR2'] == 1.0, 'ECR2'] = 4 # --> 2050
+    gdf.loc[gdf['ECR2'] == 0.3, 'ECR2'] = 1 # --> 2020
+
+    # Maximise output score for ECR2
+    gdf.loc[gdf['ECR2'] == 1, 'ECR2'] = 0.25 # --> Mayors Adapt
+    gdf.loc[gdf['ECR2'] == 2, 'ECR2'] = 0.5 # --> 2020
+    gdf.loc[gdf['ECR2'] == 3, 'ECR2'] = 0.75 # --> 2030
+    gdf.loc[gdf['ECR2'] == 4, 'ECR2'] = 1.0 # --> 2050
+
     # Fill NAN-values with 0.
     gdf = gdf.fillna(0)
+
+    gdf.describe()
 
     ## Data Computation
     ### Benchmarks
@@ -96,7 +111,7 @@ def IndexMaker():
         if KPI == 'D1' or KPI == 'D2' or KPI == 'D4' or KPI == 'ECR1' or KPI == 'ECR2'  or KPI == 'W3':
             gdf[standard_column_KPI] = NON_STANDARD_VALUE * 1.0
 
-        # 2. Percentage values 
+        # 2. Percentage values     
         elif KPI == 'D3' or KPI == 'ECR3' or KPI == 'ECR6' or KPI == "W2":
             if bench(KPI) > 0.0:
                 KPI_standard_percentage = NON_STANDARD_VALUE * bench(KPI)
@@ -129,10 +144,11 @@ def IndexMaker():
 
         # 4. Threshold_up values
         elif KPI == 'M1' or KPI == 'M2' or KPI == 'M3' or KPI == 'M4':
-            KPI_standard_thresholdup = NON_STANDARD_VALUE / bench(KPI)
-            gdf[standard_column_KPI] = KPI_standard_thresholdup
+            gdf[standard_column_KPI] = NON_STANDARD_VALUE
+            gdf[standard_column_KPI].values[gdf[standard_column_KPI].values > bench(KPI)] = bench(KPI)
+            gdf[standard_column_KPI] / bench(KPI)
             gdf[standard_column_KPI].values[gdf[standard_column_KPI].values > 1.0] = 1.0
-        
+            
         # 5. Quartile_down values
         elif KPI == 'W1':
             column = []
@@ -154,6 +170,7 @@ def IndexMaker():
 
             # Normalize given threshold values
             gdf[standard_column_KPI] = (gdf[standard_column_KPI] - gdf[standard_column_KPI].min()) / (gdf[standard_column_KPI].max() - gdf[standard_column_KPI].min())  
+
 
         return gdf[standard_column_KPI]
 
@@ -198,10 +215,11 @@ def IndexMaker():
 
         # 4. Threshold_up values
         elif KPI == 'M1' or KPI == 'M2' or KPI == 'M3' or KPI == 'M4':
-            KPI_standard_thresholdup = NON_STANDARD_VALUE / bench(KPI)
-            gdf[standard_column_KPI] = KPI_standard_thresholdup
+            gdf[standard_column_KPI] = NON_STANDARD_VALUE
+            gdf[standard_column_KPI].values[gdf[standard_column_KPI].values > bench(KPI)] = bench(KPI)
+            gdf[standard_column_KPI] / bench(KPI)
             gdf[standard_column_KPI].values[gdf[standard_column_KPI].values > 1.0] = 1.0
-
+            
         # 5. Quartile_down values
         elif KPI == 'W1':
             column = []
@@ -259,8 +277,6 @@ def IndexMaker():
             bench(KPI)
             normalization(KPI)
 
-    gdf
-
     ## Data Weighting
     ### KPI Weighting
     # Create function to define weight per KPI
@@ -308,8 +324,6 @@ def IndexMaker():
         if ALTERNATIVE_KPI_WEIGHT == True:
             gdf[weighted_KPI]= gdf[standard_column_KPI] * alternative_KPI_weight(KPI)
 
-    gdf
-
     ### Level Weighting
     # Create columns for level weights
     gdf["Digitalization"] = 0
@@ -335,13 +349,29 @@ def IndexMaker():
         else:
             pass
 
-    gdf
+    # save raw geodataframe before area weights
+    gdf_raw = gdf[[
+    'CTOT',
+    'CMUN',
+    'Municipality',
+    'Digitalization',
+    'Energy_Climate_Resources',
+    'Mobility',
+    'Waste',
+    'geometry'
+    ]]
+
+    # exports the geodataframe into GeoPackage file
+    file_name = 'CCI_Index_BEFORE_WEIGHTS'
+    data_format = '.gpkg'
+    export_name = file_name + data_format
+    if SAVE_INDEX is True:
+        gdf_raw.to_file('/work/' + export_name, driver='GPKG')
 
     ## Index Implementation
+
     # Calculate total weighted value per municipality
     gdf["CCI"] = gdf["Digitalization"] * 0.2 + gdf["Energy_Climate_Resources"] * 0.3 + gdf["Mobility"] * 0.2 + gdf["Waste"] * 0.3
-
-    gdf
 
     # filter columns that refer to weighted values
     gdf_master = gdf[[
@@ -370,11 +400,8 @@ def IndexMaker():
     'geometry'
     ]]
 
-    gdf_master
-
     # Drop duplicate values (contain same values)
     gdf_master = gdf_master.drop_duplicates(subset=['CTOT'])
-    gdf_master
 
     ### Total Index
     # Plot index results - Circular City Index (Total)
@@ -389,41 +416,33 @@ def IndexMaker():
         cmap="RdYlGn",
         legend_kwds={"shrink": 0.7},
     )
-
     ax.set_title("Circular City Index", fontsize=20, y=1.01)
-
     if SAVE_FIGS is True:
         plt.savefig(DIR_INDEX + "index_results_CCI_total.svg", format="svg")
 
-    plt.show()
+    gdf_master.describe()
 
     ## Export files
     # exports the geodataframe into GeoPackage file
     file_name = 'CCI_Index'
     data_format = '.gpkg'
-
     export_name = file_name + data_format
-
     if SAVE_INDEX is True:
-        gdf_master.to_file(INDEX_FOLDER + export_name, driver='GPKG') 
+        gdf_master.to_file(DIR_INDEX + export_name, driver='GPKG') 
 
     # exports the geodataframe into Shapefile
     file_name = 'CCI_Index'
     data_format = '.shp'
-
     export_name = file_name + data_format
-
     if SAVE_INDEX is True:
         gdf_master.to_file(DIR_INDEX + export_name)
 
     # exports the dataframe into csv file
     file_name = 'CCI_Index'
     data_format = '.csv'
-
     export_name = file_name + data_format
-
     if SAVE_INDEX is True:
         gdf_master.to_csv(DIR_INDEX + export_name)
 
     print("Circular City Index is computed")
-    print("##################################")
+    print("##################################") 

@@ -1,4 +1,3 @@
-# 06. Data Analytics - Local Spatial Autocorrelation
 import os
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -11,7 +10,7 @@ from splot import esda as esdaplot
 def LocalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     # papermill parameters cell
     OUTPUT_WARNINGS = False
-    SAVE_FIGS = True
+    SAVE_FIGS = False
     DROP_VARIABLE = True
 
     if OUTPUT_WARNINGS is False:
@@ -20,29 +19,30 @@ def LocalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_P
         warnings.filterwarnings("ignore")
 
     AREA_TO_PREDICT_dict = {
-    "Andalusia": "01", 
-    "Aragon": "02",
-    "Asturias": "03", 
-    "Balearic Islands": "04",
-    "Canarias": "05", 
-    "Cantabria": "06",
-    "Castile and Leon": "07", 
-    "Castille-La Mancha": "08",
-    "Catalonia": "09", 
-    "Valencia": "10",
-    "Extremadura": "11", 
-    "Galicia": "12",
-    "Madrid": "13", 
-    "Murcia": "14",
-    "Navarre": "15", 
-    "Basque Country": "16",
-    "La Rioja": "17",
-    "Ceuta": "18",
-    "Melilla": "19",
-    "Minor Plazas de Soberanía": "20",
-    }
+        "Andalusia": "01", 
+        "Aragon": "02",
+        "Asturias": "03", 
+        "Balearic Islands": "04",
+        "Canarias": "05", 
+        "Cantabria": "06",
+        "Castile and Leon": "07", 
+        "Castille-La Mancha": "08",
+        "Catalonia": "09", 
+        "Valencia": "10",
+        "Extremadura": "11", 
+        "Galicia": "12",
+        "Madrid": "13", 
+        "Murcia": "14",
+        "Navarre": "15", 
+        "Basque Country": "16",
+        "La Rioja": "17",
+        "Ceuta": "18",
+        "Melilla": "19",
+        "Minor Plazas de Soberanía": "20",
+        }
 
     ## Parameter Check
+
     # Create folders to store the data
     DIR_DATA = "data/"
     DIR_VAR = DIR_DATA + "processed/{}/{}/".format(VARIABLE_TO_PREDICT, AREA_TO_PREDICT)
@@ -76,7 +76,7 @@ def LocalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_P
     if AREA_TO_PREDICT in AREA_TO_PREDICT_dict:
         CCI = CCI[CCI["CTOT"].astype(str).str.contains(r'^' + AREA_TO_PREDICT_dict[AREA_TO_PREDICT])]
     elif AREA_TO_PREDICT == "Iberian Pensinula":
-        CCI = CCI[~CCI.CTOT.str.contains(r'^04')] # --> DROP BALEARIC ISLANDS
+        #CCI = CCI[~CCI.CTOT.str.contains(r'^04')] # --> DROP BALEARIC ISLANDS
         CCI = CCI[~CCI.CTOT.str.contains(r'^05')] # --> DROP CANARIAS
         CCI = CCI[~CCI.CTOT.str.contains(r'^18')] # --> DROP CEUTA
         CCI = CCI[~CCI.CTOT.str.contains(r'^19')] # --> DROP MELILLA
@@ -94,7 +94,7 @@ def LocalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_P
     if AREA_TO_PREDICT in AREA_TO_PREDICT_dict:
         geo_info = geo_info[geo_info["CTOT"].astype(str).str.contains(r'^' + AREA_TO_PREDICT_dict[AREA_TO_PREDICT])]
     elif AREA_TO_PREDICT == "Iberian Pensinula":
-        geo_info = geo_info[~geo_info.CTOT.str.contains(r'^04')] # --> DROP BALEARIC ISLANDS
+        #geo_info = geo_info[~geo_info.CTOT.str.contains(r'^04')] # --> DROP BALEARIC ISLANDS
         geo_info = geo_info[~geo_info.CTOT.str.contains(r'^05')] # --> DROP CANARIAS
         geo_info = geo_info[~geo_info.CTOT.str.contains(r'^18')] # --> DROP CEUTA
         geo_info = geo_info[~geo_info.CTOT.str.contains(r'^19')] # --> DROP MELILLA
@@ -197,6 +197,7 @@ def LocalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_P
 
     # Display
     plt.show()
+
 
     ## Local Moran's I
     ### Calculate LSA

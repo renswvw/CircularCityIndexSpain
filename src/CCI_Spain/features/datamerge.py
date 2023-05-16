@@ -1,5 +1,3 @@
-
-# 02. Data Merge & Spatialization
 from pathlib import Path
 import geopandas as gpd
 import pandas as pd
@@ -125,8 +123,7 @@ def DataMerge():
 
     # Drop duplicate values (contain same values)
     gdf_master = gdf_master.drop_duplicates(subset=['CTOT'])
-
-    gdf_master.describe()
+    gdf_master["W2"] = gdf_master["W2"] / 1000
 
     if SAVE_MERGEDDATA is True:
         gdf_master.describe().to_csv("data/processed/CCI/Spain/03_index/descriptive_unprocessed_CCI_KPIs.csv", index=True)
@@ -134,41 +131,32 @@ def DataMerge():
     gdf_master.describe()
 
     ## Export files
-
     # exports the geodataframe into GeoPackage file
     file_name = 'CCI_spatialization_interimdata'
     data_format = '.gpkg'
-
     export_name = file_name + data_format
-
     if SAVE_MERGEDDATA is True:
         gdf_master.to_file(SPATIALIZED_FOLDER + export_name, driver='GPKG') 
 
     # exports the geodataframe into Shapefile
     file_name = 'CCI_spatialization_interimdata'
     data_format = '.shp'
-
     export_name = file_name + data_format
-
     if SAVE_MERGEDDATA is True:
         gdf_master.to_file(SPATIALIZED_FOLDER + export_name) 
 
     # export the geodataframe into csv file
     file_name = 'CCI_spatialization_interimdata'
     data_format = '.csv'
-
     export_name = file_name + data_format
-
     if SAVE_MERGEDDATA is True:
         gdf_master.to_csv(SPATIALIZED_FOLDER + export_name, index=False)
 
     # PART 2 - DEMOGRAPHIC DATA
-
     df_base = pd.DataFrame(gdf)
 
     # DATA MANAGEMENT --> SCRIPT MOET WORDEN AFGEMAAKT, KLOPT NU NIET
     dataframe_list = []
-
     for file in glob(DEMOGRAPHIC_INTERIM_FOLDER + '*.csv'):
         # import interim datasets of CCIs
         df = pd.read_csv(file)
@@ -228,31 +216,24 @@ def DataMerge():
     gdf_demographic_total = gpd.GeoDataFrame(df_demographic_total)
 
     ## Export files
-
     # exports the geodataframe into GeoPackage file
     file_name = 'Spatial_demographic_interimdata'
     data_format = '.gpkg'
-
     export_name = file_name + data_format
-
     if SAVE_MERGEDDATA is True:
         gdf_demographic_total.to_file(MERGED_DEMOGRAPHIC_INTERIM_FOLDER + export_name, driver='GPKG') 
 
     # exports the geodataframe into Shapefile
     file_name = 'Spatial_demographic_interimdata'
     data_format = '.shp'
-
     export_name = file_name + data_format
-
     if SAVE_MERGEDDATA is True:
         gdf_demographic_total.to_file(MERGED_DEMOGRAPHIC_INTERIM_FOLDER + export_name) 
 
     # export the geodataframe into csv file
     file_name = 'Spatial_demographic_interimdata'
     data_format = '.csv'
-
     export_name = file_name + data_format
-
     if SAVE_MERGEDDATA is True:
         df_demographic_total.to_csv(MERGED_DEMOGRAPHIC_INTERIM_FOLDER + export_name, index=False)
 

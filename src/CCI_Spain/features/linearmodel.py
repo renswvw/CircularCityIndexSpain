@@ -1,5 +1,3 @@
-# 07. Data Analytics - Linear Regression
-
 import os
 import geopandas as gpd
 import matplotlib as mpl
@@ -23,7 +21,7 @@ cmap = sns.diverging_palette(230, 20, as_cmap=True)
 
 def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     # papermill parameters cell
-    SAVE_FIGS = True
+    SAVE_FIGS = False
     SAVE_MODEL = True
     DROP_VARIABLE = True
 
@@ -173,7 +171,6 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     geo_info.describe()
 
     ### Plot target variable
-
     # Define line colors
     def line_color(area):
         if area == "Spain" or area == "Iberian Pensinula": color = 'face'
@@ -366,7 +363,6 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     preprocessor = Pipeline(steps=[("imputer", KNNImputer()), ("pt", pt)])
 
     ### Feature Selection by Subgroups
-
     # Feature selection
     class KBestSelector:
         def __init__(
@@ -444,7 +440,6 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     X.drop(np.setdiff1d(X_TOURISM.columns, X_TOURISM_chosen), axis=1, inplace=True)
 
     ### Feature Selection Pipeline
-
     # Define type of regressor to implement
     myRegressor = LinearRegression()
 
@@ -459,7 +454,7 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     # Define the param space for hyper-parameter tunning (in this case, the number of features to keep with RFE)
     #nr_of_features = len(X.axes[1])
-    param_grid_rfe = [{"rfe__n_features_to_select": np.arange(8, 15, 1)}] #np.arange(nr_of_features, 15, 1)}]
+    param_grid_rfe = [{"rfe__n_features_to_select": np.arange(6, 15, 1)}] #np.arange(nr_of_features, 15, 1)}]
 
     search_rfe = GridSearchCV(
         pipe_rfe, param_grid_rfe, scoring="neg_root_mean_squared_error", n_jobs=-1
@@ -467,6 +462,7 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     # The target feature will be transformed with PowerTransformer (TransformedTargetRegressor)
     model = TransformedTargetRegressor(regressor=search_rfe, transformer=PowerTransformer())
+
     model.fit(X, y)
 
     # Print outcomes of best model
@@ -633,7 +629,6 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     ax.set_title("Relative errors in first linear model", fontsize=20, y=1.01)
 
-
     if SAVE_FIGS is True:
         plt.savefig(DIR_LINEAR + "relative_errors.svg", format="svg")
 
@@ -685,7 +680,7 @@ def LinearModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
         legend_kwds={"shrink": 0.7},
     )
 
-    ax.set_title("Relative errors in second linear model", fontsize=20, y=1.01)
+    ax.set_title("Relative errors in non-spatial model", fontsize=20, y=1.01)
 
 
     if SAVE_FIGS is True:

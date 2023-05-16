@@ -12,7 +12,7 @@ from sklearn.preprocessing import PowerTransformer
 from sklearn.impute import KNNImputer, SimpleImputer
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
+def MGWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     # papermill parameters cell
     OUTPUT_WARNINGS = False
     SAVE_TABLES = False
@@ -53,12 +53,12 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     # Create folders to store the data
     DIR_DATA = "data/"
     DIR_VAR = DIR_DATA + "processed/{}/{}/".format(VARIABLE_TO_PREDICT, AREA_TO_PREDICT)
-    DIR_GWR = DIR_VAR + "08_gwr/"
+    DIR_MGWR = DIR_VAR + "10_mgwr/"
 
-    if SAVE_FIGS is True or SAVE_MODEL is True:
+    if SAVE_FIGS:
         folder_list = [
-            DIR_GWR,
-            DIR_GWR + "coefficients",
+            DIR_MGWR,
+            DIR_MGWR + "coefficients",
         ]
 
         for folder in folder_list:
@@ -69,6 +69,18 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     if os.path.isfile(PATH_TO_FILE) is False:
         raise Exception(
             'Please run first the notebooks with the same area and "SAVE_DATA" set to True: /n"00acquisition.ipynb", /n"01datamanagement.ipynb", /n"02dataspatialization.ipynb", /n"03index.ipynb"'
+        )
+
+    PATH_TO_FILE = DIR_VAR + "07_linear/coefficients.csv"
+    if os.path.isfile(PATH_TO_FILE) is False:
+        raise Exception(
+            'Please run first the notebook "07linear.ipynb" with the same date and "SAVE_MODEL" set to True'
+        )
+
+    PATH_TO_FILE = DIR_VAR + "08_gwr/coefficients.csv"
+    if os.path.isfile(PATH_TO_FILE) is False:
+        raise Exception(
+            'Please run first the notebook "08gwr.ipynb" with the same date and "SAVE_MODEL" set to True'
         )
 
     ## Target variable
@@ -172,7 +184,6 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     print("Area with maximum value: " + str(id_max_KPI))
 
     ### Plot target variable
-
     # Define line colors
     def line_color(area):
         if area == "Spain" or area == "Iberian Pensinula": color = 'face'
@@ -236,7 +247,7 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     plt.show()
 
-    ## GWR Model
+    ## MGWR Model
     ### Feature Selection
     # Load best model dataset from 07_linear notebook
     #linear_coefs = pd.read_csv(DIR_VAR + "07_linear/coefficients.csv", index_col=0)
@@ -253,6 +264,7 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     pd.isnull(X_chosen).sum(0)
 
     ### Preprocessing
+
     # Create new dataframes by coping X and y
     X_transformed = X_chosen.copy()
     y_transformed = y_chosen.copy()
@@ -292,7 +304,7 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     vif["variable"] = X_chosen.columns
 
     if SAVE_TABLES is True:
-        vif.sort_values(by=['VIF']).to_csv(DIR_GWR + "VIF_GWR_model.csv")
+        vif.sort_values(by=['VIF']).to_csv(DIR_MGWR + "VIF_MGWR_model.csv")
 
     vif.sort_values(by=['VIF'], ascending=False)
 
@@ -335,50 +347,38 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     g.map_upper(corrfunc, cmap=plt.get_cmap("coolwarm"), norm=plt.Normalize(vmin=-0.8, vmax=0.8))
     g.fig.subplots_adjust(wspace=0.06, hspace=0.06) 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "bivariate_correlations_GWR_model.svg", format="svg")
+        plt.savefig(DIR_MGWR + "bivariate_correlations_MGWR_model.svg", format="svg")
 
     ## Model training
-    ### Bandwidth selection for GWR
-    # Select bandwidth for GWR with adaptive bandwidth
-    gwr_chosen_selector = mgwr.sel_bw.Sel_BW(
-        coords, y_transformed, X_transformed, fixed=False, spherical=True, multi=False
+    ### Standardize features
+    Zy_transformed = (y_transformed - y_transformed.mean(axis=0)) / y_transformed.std(axis=0)
+    ZX_transformed = (X_transformed - X_transformed.mean(axis=0)) / X_transformed.std(axis=0)
+
+    ### Bandwidth selection for MGWR
+    # Select bandwidth for MGWR with adaptive bandwidth
+    mgwr_chosen_selector = mgwr.sel_bw.Sel_BW(
+        coords, Zy_transformed, ZX_transformed, fixed=False, spherical=True, multi=True
     )
-
-    # define gwr_bw to speed up process --> #451 for spain, 492 for catalonia
-    def gwr_bandwidth(area):
-        if area == "Spain": 
-            bandwidth = 451
-        elif area == "Catalonia": 
-            bandwidth = 492
-        else: 
-            bandwidth = gwr_chosen_selector.search()
-        return bandwidth
-
-    gwr_bw = gwr_bandwidth(AREA_TO_PREDICT)
-
-    print("GWR with chosen and transformed features")
-    print("Bandwith (KNN): " + str(int(gwr_bw)))
+    mgwr_bw = mgwr_chosen_selector.search()
+    print("MGWR with chosen and transformed features")
+    print("Bandwith (KNN): " + str(int(mgwr_bw)))
 
     ### Fit the model
-    # Perform GWR and fit model
-    gwr_model = mgwr.gwr.GWR(
-        coords, y_transformed, X_transformed, gwr_bw, constant=FIT_INTERCEPT 
+    # Perform MGWR and fit model
+    mgwr_model = mgwr.gwr.MGWR(
+        coords, Zy_transformed, ZX_transformed, mgwr_bw, constant=FIT_INTERCEPT
     )
-    gwr_results = gwr_model.fit()
-
-    #if SAVE_TABLES is True:
-        #gwr_results.summary().to_csv(DIR_GWR + "GWR_model_summary.csv")
-
-    gwr_results.summary()
+    mgwr_results = mgwr_model.fit()
+    mgwr_results.summary()
 
     # Results of R2, AIC, and AICc
-    print('Mean R2 =', gwr_results.R2)
-    print('AIC =', gwr_results.aic)
+    print('Mean R2 =', mgwr_results.R2)
+    print('AIC =', mgwr_results.aic)
 
     ## Model predictions
     # Predict the model outcomes 
-    gwr_model.predict(coords, X_transformed)
-    y_predicted = gwr_results.predictions
+    mgwr_model.predict(coords, X_transformed)
+    y_predicted = mgwr_results.predictions
 
     # Create class to calculate accuracy of model predictions
     class PredictedAccuracy:
@@ -479,21 +479,21 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
             plt.show()
 
-    ### GWR Model
+    ### MGWR Model
     # Define predicted accuracy for model
     y_predicted_transformed = y_predicted.copy()
     y_predicted = pw_y.inverse_transform(y_predicted).round().flatten()
-    y_predicted = pd.Series(y_predicted, name="GWR")
+    y_predicted = pd.Series(y_predicted, name="MGWR")
     y_truth = pd.Series(y.flatten(), name="True Data")
-    pa_gwr = PredictedAccuracy(y_truth, y_predicted)
+    pa_mgwr = PredictedAccuracy(y_truth, y_predicted)
 
     ### Model fit
-    # Plot predicted accuracy for GWR (scatter plot)
-    pa_gwr.plot_scatter(save_fig=SAVE_FIGS, root_name=DIR_GWR + "gwr_model")
+    # Plot predicted accuracy for MGWR (scatter plot)
+    pa_mgwr.plot_scatter(save_fig=SAVE_FIGS, root_name=DIR_MGWR + "mgwr_model")
 
     ### Model Residuals
-    # Plot predicted accuracy for GWR (errors)
-    pa_gwr.plot_errors(save_fig=SAVE_FIGS, root_name=DIR_GWR + "gwr_model")
+    # Plot predicted accuracy for MGWR (errors)
+    pa_mgwr.plot_errors(save_fig=SAVE_FIGS, root_name=DIR_MGWR + "mgwr_model")
 
     # Plot relative errors in linear model on map
     geo_info["Chosen_Error"] = 2 * (y_truth - y_predicted) / (abs(y_truth) + abs(y_predicted))
@@ -514,27 +514,26 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
         legend_kwds={"shrink": 0.7},
     )
 
-    ax.set_title("Relative errors in GWR model", fontsize=20, y=1.01)
+    ax.set_title("Relative errors in MGWR model", fontsize=20, y=1.01)
 
 
     if SAVE_FIGS is True:
-        plt.savefig(DIR_GWR + "relative_errors.svg", format="svg")
+        plt.savefig(DIR_MGWR + "relative_errors.svg", format="svg")
 
     plt.show()
 
-    ## Transformed GWR Model
-    # Define predicted accuracy for model with transformed GWR
-    y_predicted_transformed = pd.Series(y_predicted_transformed.flatten(), name="GWR_predicted_transformed")
-    y_transformed = pd.Series(y_transformed.flatten(), name="GWR_transformed")
-    pa_gwr_tf = PredictedAccuracy(y_transformed, y_predicted_transformed)
+    ## Transformed MGWR Model
+    # Define predicted accuracy for model with transformed MGWR
+    y_predicted_transformed = pd.Series(y_predicted_transformed.flatten(), name="MGWR_predicted_transformed")
+    y_transformed = pd.Series(y_transformed.flatten(), name="MGWR_transformed")
+    pa_mgwr_tf = PredictedAccuracy(y_transformed, y_predicted_transformed)
 
     ### Model Fit
-
-    # Plot predicted accuracy for transformed GWR (scatter plot)
-    pa_gwr_tf.plot_scatter(save_fig=SAVE_FIGS, root_name=DIR_GWR + "gwr_transformed")
+    # Plot predicted accuracy for transformed MGWR (scatter plot)
+    pa_mgwr_tf.plot_scatter(save_fig=SAVE_FIGS, root_name=DIR_MGWR + "mgwr_transformed")
 
     # Define and plot Local R2
-    geo_info["Chosen_Local_R2"] = gwr_results.localR2
+    geo_info["Chosen_Local_R2"] = mgwr_results.localR2
 
     fig, ax = plt.subplots(figsize=(20, 20))
     geo_info.plot(
@@ -554,19 +553,18 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     plt.legend()
 
     ax.set_title(
-        "Local R2 with KNN = {}".format(int(gwr_bw)),
+        "Local R2 with KNN = {}".format(int(mgwr_bw)),
         fontsize=20,
     )
 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "local_r2.svg", format="svg")
+        plt.savefig(DIR_MGWR + "local_r2.svg", format="svg")
 
     plt.show()
 
     ### Model Residuals
-
-    # Plot predicted accuracy for transformed GWR (errors)
-    pa_gwr_tf.plot_errors(save_fig=SAVE_FIGS, root_name=DIR_GWR + "gwr_transformed")
+    # Plot predicted accuracy for transformed MGWR (errors)
+    pa_mgwr_tf.plot_errors(save_fig=SAVE_FIGS, root_name=DIR_MGWR + "mgwr_transformed")
 
     # Define relative errors of model
     geo_info["Chosen_Error"] = (
@@ -596,49 +594,49 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     plt.legend()
 
-    ax.set_title("Relative errors in spatial model", fontsize=20, y=1.01)
+    ax.set_title("Relative errors in MGWR", fontsize=20, y=1.01)
 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "relative_errors.svg", format="svg")
+        plt.savefig(DIR_MGWR + "relative_errors.svg", format="svg")
 
     plt.show()
 
     ### Areas of importance of each feature
     # Define areas of importance of each feature in model
-    gwr_columns = best_model.copy()
+    mmgwr_columns = best_model.copy()
     if FIT_INTERCEPT:
-        gwr_columns = gwr_columns.insert(0, "Intercept")
-    coefs_gwr = pd.DataFrame(gwr_results.params, columns=gwr_columns)
+        mmgwr_columns = mmgwr_columns.insert(0, "Intercept")
+    coefs_mgwr = pd.DataFrame(mgwr_results.params, columns=mmgwr_columns)
 
     # Define median 
-    medians_gwr = coefs_gwr.median()
-    medians_gwr = medians_gwr.reindex(medians_gwr.abs().sort_values(ascending=False).index)
-    coefs_gwr = coefs_gwr[medians_gwr.index]
+    medians_mgwr = coefs_mgwr.median()
+    medians_mgwr = medians_mgwr.reindex(medians_mgwr.abs().sort_values(ascending=False).index)
+    coefs_mgwr = coefs_mgwr[medians_mgwr.index]
 
     limit_value = (
-        max(abs(coefs_gwr.to_numpy().min()), abs(coefs_gwr.to_numpy().max())) * 1.05
+        max(abs(coefs_mgwr.to_numpy().min()), abs(coefs_mgwr.to_numpy().max())) * 1.05
     )
 
     limit_value.shape
 
     # Copy coefficients in geodataframe to plot
-    for col in coefs_gwr.columns:
+    for col in coefs_mgwr.columns:
         #     if col != "Intercept":
         #     if True:
-        geo_coefs[col] = coefs_gwr[col].values
+        geo_coefs[col] = coefs_mgwr[col].values
 
     # Define t-values of coefficientes
-    gwr_filtered_t = pd.DataFrame(gwr_results.filter_tvals(), columns=gwr_columns)
-    gwr_filtered_t.index = geo_info.index
+    mgwr_filtered_t = pd.DataFrame(mgwr_results.filter_tvals(), columns=mgwr_columns)
+    mgwr_filtered_t.index = geo_info.index
 
     # Copy coefficients in new dataframe
     geo_significant_coefs = geo_coefs.copy()
 
     # Define and plot coefficients for each independent variable
-    for col in coefs_gwr.columns:
+    for col in coefs_mgwr.columns:
         fig, ax = plt.subplots(figsize=(20, 20))
-        min_coef = geo_coefs[gwr_filtered_t.loc[:, col] != 0][col].min()
-        max_coef = geo_coefs[gwr_filtered_t.loc[:, col] != 0][col].max()
+        min_coef = geo_coefs[mgwr_filtered_t.loc[:, col] != 0][col].min()
+        max_coef = geo_coefs[mgwr_filtered_t.loc[:, col] != 0][col].max()
 
         cool_warm_cmap = plt.cm.coolwarm
 
@@ -668,19 +666,19 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
             cmap=cool_warm_cmap,
             legend_kwds={"shrink": 0.7},
         )
-        if (gwr_filtered_t.loc[:, col] == 0).any():
-            geo_info[gwr_filtered_t.loc[:, col] == 0].plot(
+        if (mgwr_filtered_t.loc[:, col] == 0).any():
+            geo_info[mgwr_filtered_t.loc[:, col] == 0].plot(
                 color="lightgrey", ax=ax, **{"edgecolor": "black"}
             )
             temp = geo_significant_coefs[[col]]
-            temp[gwr_filtered_t.loc[:, col] == 0] = np.nan
+            temp[mgwr_filtered_t.loc[:, col] == 0] = np.nan
             geo_significant_coefs[col] = temp[col]
 
         ax.set_title("Coefficients of {}".format(col), fontsize=20, y=1.01)
 
         if SAVE_FIGS:
             plt.savefig(
-                DIR_GWR + "coefficients/{}.svg".format(col),
+                DIR_MGWR + "coefficients/{}.svg".format(col),
                 format="svg",
             )
 
@@ -688,10 +686,10 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     ## Spatial stationarity
     #Monte Carlo test of spatial variability: 500 iterations 
-    gwr_p_values_stationarity = gwr_results.spatial_variability(gwr_chosen_selector, 1) #500
+    mgwr_p_values_stationarity = mgwr_results.spatial_variability(mgwr_chosen_selector, 1) #500
 
     # Print (intercept is first p-value)
-    gwr_p_values_stationarity
+    mgwr_p_values_stationarity
 
     ## Local multicollinearity
     # Calculate variance inflation factor (VIF) and measure multicollinearity per KPI
@@ -700,20 +698,20 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     vif["variable"] = X_chosen.columns
 
     if SAVE_TABLES is True:
-        vif.sort_values(by=['VIF']).to_csv(DIR_GWR + "VIF_GWR.csv")
+        vif.sort_values(by=['VIF']).to_csv(DIR_MGWR + "VIF_MGWR.csv")
 
     vif.sort_values(by=['VIF'], ascending=False)
 
     # Calculate multicollinearity per Municipality
-    LCC, VIF, CN, VDP = gwr_results.local_collinearity()
+    LCC, VIF, CN, VDP = mgwr_results.local_collinearity()
 
-    geo_info['gwr_VIF'] = VIF.mean(axis=1)
-    geo_info['gwr_CN'] = CN
+    geo_info['mgwr_VIF'] = VIF.mean(axis=1)
+    geo_info['mgwr_CN'] = CN
 
     # Plot Multicollinearity - VIF
     fig, ax = plt.subplots(figsize=(6, 6))
     geo_info.plot(
-        column='gwr_VIF', 
+        column='mgwr_VIF', 
         cmap = 'YlOrRd', 
         linewidth=0.1, 
         edgecolor=line_color(AREA_TO_PREDICT),
@@ -730,42 +728,42 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     cmap.set_over('r')
 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "local_multicollinearity_VIF.svg", dpi=150, format="svg", bbox_inches='tight')
+        plt.savefig(DIR_MGWR + "local_multicollinearity_VIF.svg", dpi=150, format="svg", bbox_inches='tight')
 
     plt.show()
 
     ## Statistical information of each feature and section
     # Calculate statistical information of each feature / section
-    significant_coefs_gwr = geo_significant_coefs.drop(["geometry"], axis=1)
+    significant_coefs_mgwr = geo_significant_coefs.drop(["geometry"], axis=1)
 
     limit_value = (
         max(
-            np.nanmin(abs(significant_coefs_gwr.to_numpy())),
-            np.nanmax(abs(significant_coefs_gwr.to_numpy())),
+            np.nanmin(abs(significant_coefs_mgwr.to_numpy())),
+            np.nanmax(abs(significant_coefs_mgwr.to_numpy())),
         )
         * 1.05
     )
 
     if FIT_INTERCEPT:
-        medians_gwr = significant_coefs_gwr.drop(["Intercept"], axis=1).median()
+        medians_mgwr = significant_coefs_mgwr.drop(["Intercept"], axis=1).median()
     else:
-        medians_gwr = significant_coefs_gwr.median()
+        medians_mgwr = significant_coefs_mgwr.median()
 
-    medians_gwr = medians_gwr.reindex(medians_gwr.abs().sort_values(ascending=False).index)
+    medians_mgwr = medians_mgwr.reindex(medians_mgwr.abs().sort_values(ascending=False).index)
 
     if FIT_INTERCEPT:
-        medians_gwr = medians_gwr.append(pd.Series({"Intercept": 0}, index=["Intercept"]))
+        medians_mgwr = medians_mgwr.append(pd.Series({"Intercept": 0}, index=["Intercept"]))
 
-    significant_coefs_gwr = significant_coefs_gwr[medians_gwr.index]
+    significant_coefs_mgwr = significant_coefs_mgwr[medians_mgwr.index]
 
     # Plot sensitivity analysis
     fig, ax = plt.subplots(figsize=(20, 20))
 
-    sns.stripplot(ax=ax,data=significant_coefs_gwr,orient="h", color="k", alpha=0.5)
-    sns.boxplot(ax=ax,data=significant_coefs_gwr,orient="h", color="cyan",saturation=0.5)
+    sns.stripplot(ax=ax,data=significant_coefs_mgwr,orient="h", color="k", alpha=0.5)
+    sns.boxplot(ax=ax,data=significant_coefs_mgwr,orient="h", color="cyan",saturation=0.5)
     plt.axvline(x=0, color="red")
 
-    plt.figtext(0.51, 0.9, "GWR Model: Sensitivity Analysis - Coefficient Robustness", fontsize=20, ha="center")
+    plt.figtext(0.51, 0.9, "MGWR Model: Sensitivity Analysis - Coefficient Robustness", fontsize=20, ha="center")
     plt.figtext(0.51, 
         0.885,
         VARIABLE_TO_PREDICT,
@@ -777,19 +775,19 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     ax.set_xlabel("Coefficient value", fontsize=15)
 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "sensitivity_gwr_model.svg", format="svg")
+        plt.savefig(DIR_MGWR + "sensitivity_mgwr_model.svg", format="svg")
 
     plt.show()
 
     if SAVE_MODEL is True:
-        significant_coefs_gwr.to_csv(DIR_GWR + "coefficients.csv")
-        significant_coefs_gwr.to_csv(
-            DIR_VAR + "08_gwr/coefficients_{}.csv".format(VARIABLE_TO_PREDICT)
+        significant_coefs_mgwr.to_csv(DIR_MGWR + "coefficients.csv")
+        significant_coefs_mgwr.to_csv(
+            DIR_VAR + "10_mgwr/coefficients_{}.csv".format(VARIABLE_TO_PREDICT)
         )
 
     # Count significant features 
     significant_count = pd.DataFrame(
-        [significant_coefs_gwr.count().index, significant_coefs_gwr.count().values]
+        [significant_coefs_mgwr.count().index, significant_coefs_mgwr.count().values]
     ).T
     significant_count.columns = ["Features", "Percentage"]
 
@@ -815,12 +813,12 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     plt.title("Percentage of municipalities where significant", size=24)
 
     if SAVE_FIGS:
-        g.savefig(DIR_GWR + "significant_counts.svg", format="svg")
+        g.savefig(DIR_MGWR + "significant_counts.svg", format="svg")
 
     plt.show()
 
     # Count significant features per area
-    area_count = pd.DataFrame([significant_coefs_gwr.index, significant_coefs_gwr.T.count().values]).T
+    area_count = pd.DataFrame([significant_coefs_mgwr.index, significant_coefs_mgwr.T.count().values]).T
     area_count.columns = ["Area", "Count"]
     area_count.set_index("Area", inplace=True)
     geo_info["Area_Count"] = area_count["Count"]
@@ -842,20 +840,18 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
 
     ax.set_title("Number of significant features per municipality", fontsize=20, y=1.01)
 
-    # geo_info[geo_info[VARIABLE_TO_PREDICT] == 0].centroid.plot(ax=ax, color="red")
-
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "number_features.svg", format="svg")
+        plt.savefig(DIR_MGWR + "number_features.svg", format="svg")
 
     plt.show()
 
     # Define most important feature per municipality
     geo_info["Chosen_Most_Important"] = (
-        significant_coefs_gwr.fillna(0).abs().idxmax(axis=1).values
+        significant_coefs_mgwr.fillna(0).abs().idxmax(axis=1).values
     )
 
     temp = geo_info["Chosen_Most_Important"]
-    temp[significant_coefs_gwr.fillna(0).abs().max(axis=1) == 0] = "!NONE"
+    temp[significant_coefs_mgwr.fillna(0).abs().max(axis=1) == 0] = "!NONE"
     geo_info["Chosen_Most_Important"] = temp
 
     # Plot most important feature per municipality
@@ -875,21 +871,21 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     )
 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "important_features.svg", format="svg")
+        plt.savefig(DIR_MGWR + "important_features.svg", format="svg")
 
 
     plt.show()
 
-    ## Model comparison: linear vs GWR
+    ## Model comparison: linear vs MGWR
     # Create lists to append model comparison data and names
     comparison = []
     comparison_names = []
 
-    # Append data of GWR and Linear regression to lists 
-    for col in significant_coefs_gwr.columns:
-        comparison.append(significant_coefs_gwr[col].dropna().values)
+    # Append data of MGWR and Linear regression to lists 
+    for col in significant_coefs_mgwr.columns:
+        comparison.append(significant_coefs_mgwr[col].dropna().values)
         comparison.append(linear_coefs[col].values)
-        comparison_names.append("GWR - {}".format(col))
+        comparison_names.append("MGWR - {}".format(col))
         comparison_names.append("Linear - {}".format(col))
 
 
@@ -904,7 +900,7 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
         * 1.05
     )
 
-    # Plot model comparison of GWR and linear regression
+    # Plot model comparison of MGWR and linear regression
     fig, ax = plt.subplots(figsize=(20, 20))
 
     sns.stripplot(
@@ -916,7 +912,7 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     )
 
     pal = {
-        col: "yellow" if col.startswith("GWR") else "blue" for col in df_comparison.columns
+        col: "green" if col.startswith("MGWR") else "blue" for col in df_comparison.columns
     }
 
     sns.boxplot(
@@ -930,7 +926,7 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     plt.axvline(x=0, color="red")
 
     ax.set_title(
-        "Comparative Analysis - GWR vs Second Linear Regression\nSensitivity Analysis - Coefficient Robustness",
+        "Coefficient distribution for MWGR vs linear models - {}".format(VARIABLE_TO_PREDICT),
         fontsize=20,
         y=1.01,
     )
@@ -938,18 +934,142 @@ def GWRModel(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_PREDICT):
     ax.set_xlabel("Coefficient value", fontsize=15)
 
     if SAVE_FIGS:
-        plt.savefig(DIR_GWR + "model_comparison_linear_GWR.svg", format="svg")
-    #     plt.savefig(DIR_GWR / "model_comparison_linear_GWR.jpg")
+        plt.savefig(DIR_MGWR / "model_comparison_linear_MGWR.svg", format="svg")
+    #     plt.savefig(DIR_MGWR / "model_comparison_linear_MGWR.jpg")
 
 
     plt.show()
 
-    df_gwr_bw_str = str(int(gwr_bw))
-    df_gwr_bw_str = pd.dataframe(df_gwr_bw_str)
-    df_gwr_bw_str.to_csv(DIR_GWR + "gwr_bw_str.csv")
+    ## Model comparison: GWR vs MGWR
+    # Load coef dataset from 08_gwr notebook
+    gwr_coefs = pd.read_csv(DIR_VAR + "08_gwr/coefficients.csv", index_col=0)
 
-    df_gwr_bw = pd.dataframe(gwr_bw)
-    df_gwr_bw.to_csv(DIR_GWR + "gwr_bw.csv")
+    # Create lists to append model comparison data and names
+    comparison = []
+    comparison_names = []
 
-    print("GWR Model is performed for {} in {}".format(VARIABLE_TO_PREDICT, AREA_TO_PREDICT))
+    # Append data of MGWR and Linear regression to lists 
+    for col in significant_coefs_mgwr.columns:
+        comparison.append(significant_coefs_mgwr[col].dropna().values)
+        comparison.append(significant_coefs_mgwr[col].values)
+        comparison_names.append("MGWR - {}".format(col))
+        comparison_names.append("GWR - {}".format(col))
+
+
+    df_comparison = pd.DataFrame(comparison).T
+    df_comparison.columns = [col for col in comparison_names]
+
+    limit_value = (
+        max(
+            np.nanmin(abs(df_comparison.to_numpy())),
+            np.nanmax(abs(df_comparison.to_numpy())),
+        )
+        * 1.05
+    )
+
+    # Plot model comparison of MGWR and GWR
+    fig, ax = plt.subplots(figsize=(20, 20))
+
+    sns.stripplot(
+        ax=ax,
+        data=df_comparison,
+        orient="h",
+        color="k",
+        alpha=0.5,
+    )
+
+    pal = {
+        col: "green" if col.startswith("MGWR") else "yellow" for col in df_comparison.columns
+    }
+
+    sns.boxplot(
+        ax=ax,
+        data=df_comparison,
+        orient="h",
+        palette=pal,
+        saturation=0.5,
+    )
+
+    plt.axvline(x=0, color="red")
+
+    ax.set_title(
+        "Coefficient distribution for MWGR vs GWR models - {}".format(VARIABLE_TO_PREDICT),
+        fontsize=20,
+        y=1.01,
+    )
+    ax.set_xlim(-limit_value, limit_value)
+    ax.set_xlabel("Coefficient value", fontsize=15)
+
+    if SAVE_FIGS:
+        plt.savefig(DIR_MGWR / "model_comparison_GWR_MGWR.svg", format="svg")
+
+    plt.show()
+
+    ## Model comparison: linear vs GWR vs MGWR
+    # Load coef dataset from 08_gwr notebook
+    gwr_coefs = pd.read_csv(DIR_VAR + "08_gwr/coefficients.csv", index_col=0)
+
+    # Create lists to append model comparison data and names
+    comparison = []
+    comparison_names = []
+
+    # Append data of MGWR and Linear regression to lists 
+    for col in significant_coefs_mgwr.columns:
+        comparison.append(significant_coefs_mgwr[col].dropna().values)
+        comparison.append(significant_coefs_mgwr[col].values)
+        comparison.append(linear_coefs[col].values)
+        comparison_names.append("MGWR - {}".format(col))
+        comparison_names.append("GWR - {}".format(col))
+        comparison_names.append("Linear - {}".format(col))
+
+    df_comparison = pd.DataFrame(comparison).T
+    df_comparison.columns = [col for col in comparison_names]
+
+    limit_value = (
+        max(
+            np.nanmin(abs(df_comparison.to_numpy())),
+            np.nanmax(abs(df_comparison.to_numpy())),
+        )
+        * 1.05
+    )
+
+    # Plot model comparison of MGWR and GWR and linear
+    fig, ax = plt.subplots(figsize=(20, 20))
+
+    sns.stripplot(
+        ax=ax,
+        data=df_comparison,
+        orient="h",
+        color="k",
+        alpha=0.5,
+    )
+
+    pal = {col: "green" if col.startswith("MGWR") elif "yellow" if col.startswith("GWR") else "blue" for col in df_comparison.columns}
+
+    sns.boxplot(
+        ax=ax,
+        data=df_comparison,
+        orient="h",
+        palette=pal,
+        saturation=0.5,
+    )
+
+    plt.axvline(x=0, color="red")
+
+    ax.set_title(
+        "Coefficient distribution for MWGR vs GWR vs linear models - {}".format(VARIABLE_TO_PREDICT),
+        fontsize=20,
+        y=1.01,
+    )
+    ax.set_xlim(-limit_value, limit_value)
+    ax.set_xlabel("Coefficient value", fontsize=15)
+
+    if SAVE_FIGS:
+        plt.savefig(DIR_MGWR / "model_comparison_linear_GWR_MGWR.svg", format="svg")
+    #     plt.savefig(DIR_MGWR / "model_comparison_linear_GWR_MGWR.jpg")
+
+
+    plt.show()
+
+    print("MGWR Model is performed for {} in {}".format(VARIABLE_TO_PREDICT, AREA_TO_PREDICT))
     print("##################################")

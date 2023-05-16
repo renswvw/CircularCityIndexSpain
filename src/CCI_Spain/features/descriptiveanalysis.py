@@ -1,5 +1,3 @@
-# Index - Results
-
 import seaborn as sns
 import geopandas as gpd
 import pandas as pd
@@ -8,12 +6,11 @@ import os
 import math
 import numpy as np; np.random.seed(42)
 
-
 def DescriptiveAnalysis(AREA_TO_PREDICT):
     # papermill parameters cell
     OUTPUT_WARNINGS = False
-    SAVE_FIGS = True
-    SAVE_TABLES = True
+    SAVE_FIGS = False
+    SAVE_TABLES = False
 
     if OUTPUT_WARNINGS is False:
         import warnings
@@ -45,11 +42,10 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
 
     ### Data
     # Datasets 
-    INDEX_DATA = 'data/processed/CCI/03_index/CCI_Index.geojson'
+    INDEX_DATA = 'data/processed/CCI/03_index/CCI_Index.gpkg'
     POP21_DATA = 'data/interim/POP21_interimdata.csv'
 
     ## Parameter check
-
     # Create folders to store the data
     DIR_DATA = "data/"
     DIR_VAR = DIR_DATA + "processed/{}/{}/".format("CCI", AREA_TO_PREDICT)
@@ -100,6 +96,7 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         gdf_descriptive_main.describe().to_csv((DIR_RESULTS + "descriptive_CCI_levels.csv"), index=True)
 
     gdf_descriptive_main.describe()
+    gdf_descriptive_main.dtypes
 
     # Histogram of index data
     sns.set_style('whitegrid')
@@ -109,9 +106,9 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         bins=100, 
         color='blue'
         ).set(
-            title='Histogram of CCI Scores', 
-            xlabel='CCI Score', 
-            ylabel='Nr. of Municipalities'
+            title='Circular City Index', 
+            xlabel='Index', 
+            ylabel='n municipalities'
             )
 
     if SAVE_FIGS is True:
@@ -153,7 +150,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         plt.savefig(DIR_RESULTS + "distribution_CCI_Main.svg", format="svg")
 
     ### KPIs
-
     # Description of index data (main columns)
     gdf_descriptive_KPIs = gdf.drop(columns=['CCI','Digitalization', 'Energy_Climate_Resources', 'Mobility', 'Waste','CMUN', 'Municipality', 'geometry'])
 
@@ -206,8 +202,8 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     if SAVE_FIGS:
         plt.savefig(DIR_RESULTS + "descriptive_density_levels.csv", format="svg")
 
-    ax.set_title("CCI")
-
+    sns.move_legend(ax, "lower center", bbox_to_anchor=(.5, 1.02), ncol=4, title=None, frameon=True)
+        
     # Display the figure
     plt.show()
 
@@ -233,13 +229,141 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
             alpha=0.4)
         
         # Set the axis title to the name of variable being plotted
-        ax.set_title(col)
-
+        sns.move_legend(ax, "lower center", bbox_to_anchor=(.5, 1.), ncol=4, title=None, frameon=True)
+    
     if SAVE_FIGS:
         plt.savefig(DIR_RESULTS + "descriptive_density_levels.csv", format="svg")
 
     # Display the figure
     plt.show()
+
+    # divide the dataframe into quartiles based on the CCI
+    gdf_MUNsize['Quartile'] = pd.qcut(gdf_MUNsize['CCI'], 4, labels=False)
+
+    # create a new dataframe to store the quartile data
+    quartile_data = pd.DataFrame(columns=['Quartile', 'POP21', 'Quartile Range', 'Average POP21'])
+
+    # loop through the quartiles and calculate the requested data
+    for i in range(4):
+        # select the subset of data for the current quartile
+        quartile_df = gdf_MUNsize[gdf_MUNsize['Quartile'] == i]
+        # calculate the POP21 for the quartile
+        total_inhabitants = quartile_df['POP21'].sum()
+        # calculate the quartile range
+        quartile_range = f'{quartile_df["CCI"].min()} - {quartile_df["CCI"].max()}'
+        # calculate the average POP21 for the quartile
+        average_population_size = quartile_df['POP21'].mean()
+        # add the quartile data to the quartile_data dataframe
+        quartile_data.loc[i] = [f'Quartile {i+1}', total_inhabitants, quartile_range, average_population_size]
+
+    # print the resulting quartile data
+    quartile_data
+
+    ## Province Capitals
+    provincial_capitals = {
+        'Álava': '01059',
+        'Albacete': '02003',
+        'Alicante': '03014',
+        'Almería': '04013',
+        'Asturias': '33044',
+        'Ávila': '05019',
+        'Badajoz': '06015',
+        'Barcelona': '08019',
+        'Burgos': '09059',
+        'Cáceres': '10037',
+        'Cádiz': '11012',
+        'Cantabria': '39075',
+        'Castellón': '12040',
+        'Ciudad Real': '13038',
+        'Córdoba': '14021',
+        'Cuenca': '16032',
+        'Girona': '17079',
+        'Granada': '18087',
+        'Guadalajara': '19130',
+        'Guipúzcoa': '20069',
+        'Huelva': '21041',
+        'Huesca': '22135',
+        'Islas Baleares': '07040',
+        'Jaén': '23050',
+        'La Coruña': '15030',
+        'La Rioja': '26089',
+        'Las Palmas': '35016',
+        'León': '24089',
+        'Lérida': '25120',
+        'Lugo': '27028',
+        'Madrid': '28079',
+        'Málaga': '29067',
+        'Murcia': '30030',
+        'Navarra': '31201',
+        'Orense': '32054',
+        'Palencia': '34120',
+        'Pontevedra': '36038',
+        'Salamanca': '37274',
+        'Santa Cruz de Tenerife': '38038',
+        'Segovia': '40004',
+        'Sevilla': '41091',
+        'Soria': '42173',
+        'Tarragona': '43148',
+        'Teruel': '44190',
+        'Toledo': '45168',
+        'València': '46250',
+        'Valladolid': '47186',
+        'Vizcaya': '48020',
+        'Zamora': '49275',
+        'Zaragoza': '50297'
+    }
+
+    def capital_score(index_attribute):
+        # Create a list of the province codes
+        province_codes = list(set([municipality[:2] for municipality in gdf['CMUN']]))
+
+        # Create an empty DataFrame to store the results
+        results = pd.DataFrame(columns=['Province', 'Capital Score', 'Avg Other Municipalities CCI', 'Difference'])
+
+        # Loop through each province code 
+        for code in province_codes:
+            # Get the province name from the provincial_capitals dictionary
+            province = [key for key, value in provincial_capitals.items() if value.startswith(code)]
+            if not province:
+                continue
+            province = province[0]
+            # Get the CCI value of the provincial capital
+            capital_cci = gdf.loc[gdf['CMUN'] == provincial_capitals[province], index_attribute].values[0]
+            # Get the CCI values of the other municipalities in the province
+            other_municipalities_cci = gdf.loc[gdf['CMUN'].str.startswith(code) & ~gdf['CMUN'].isin(provincial_capitals.values()), index_attribute]
+            # Calculate the average CCI value of the other municipalities
+            avg_other_municipalities_cci = other_municipalities_cci.mean()
+            # Calculate the difference between the capital CCI and the average other municipalities CCI
+            difference = capital_cci - avg_other_municipalities_cci
+            # Create a new DataFrame with the results
+            new_row = pd.DataFrame({'Province': [province], 'Capital Score': [capital_cci], 'Avg Other Municipalities CCI': [avg_other_municipalities_cci], 'Difference': [difference]})
+            # Concatenate the new row with the results DataFrame
+            results = pd.concat([results, new_row], ignore_index=True)
+
+        # Sort the results by the difference in ascending order
+        results = results.sort_values('Difference')
+
+        # Create a scatter plot
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.scatter(x=results['Province'], y=results['Difference'], s=50, color='blue')
+
+        # Add a red line at 0.0
+        ax.axhline(y=0.0, color='red', linestyle='--')
+
+        # Set axis labels and title
+        ax.set_xlabel('Province')
+        ax.set_ylabel('Difference')
+        ax.set_title('Differences between Provincial Capital and Surrounding Municipalities - {}'.format(index_attribute))
+
+        # Rotate x-axis labels
+        plt.xticks(rotation=90)
+
+        # Show the plot
+        plt.show()
+
+    # Run and Plot Differences between Capital and Rest of Provinces
+    CCI_area = 'CCI'
+    capital_score(CCI_area)
 
     ## Mapping (Visualization)
 
@@ -250,7 +374,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         return color
 
     ### Total Index
-
     # Plot index results - Circular City Index (Total)
     fig, ax = plt.subplots(figsize=(20, 20))
 
@@ -261,13 +384,13 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         legend=True,
         legend_kwds={'loc':'lower right'},
         figsize=(20, 20),
-        cmap="RdYlGn",
-        scheme="Quantiles",
-        k=4
+        cmap="Blues", #cmap="RdYlGn",
+        scheme="NaturalBreaks", #scheme="Quantiles",
+        k=5 #k=4
     )
 
     # Set the axis title to the name of variable being plotted
-    ax.set_title("Circular City Index \nScheme = Quantiles", fontsize=20, y=1.01)
+    ax.set_title("Circular City Index \nScheme = Natural Breaks", fontsize=20, y=1.01)
     # Remove axis clutter
     ax.set_axis_off()
 
@@ -275,7 +398,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         plt.savefig(DIR_RESULTS + "map_results_CCI.svg", format="svg")
 
     plt.show()
-
     f, axs = plt.subplots(nrows=1, ncols=2, figsize=(20, 40))
 
     # Make the axes accessible with single indexing
@@ -284,6 +406,7 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     ## AXIS 0 ##
     # Get mean values per Province (CPRO)
     gdf_Prov = gdf.copy()
+    gdf_Prov = gdf_Prov[["CCI","Digitalization", "Energy_Climate_Resources", "Mobility", "Waste", "geometry"]]
     gdf_Prov = gdf_Prov.dissolve(by=gdf_Prov.index.get_level_values('CTOT').str[0:4], aggfunc='mean')
 
     # select the axis where the map will go
@@ -296,10 +419,11 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         legend=True,
         legend_kwds={'loc':'lower right'},
         figsize=(20, 20),
-        cmap="RdYlGn",
-        scheme="Quantiles",
-        k=4
+        cmap="Blues", #cmap="RdYlGn",
+        scheme="NaturalBreaks", #scheme="Quantiles",
+        k=5 #k=4
     )
+
     # Set the axis title to the name of variable being plotted
     ax.set_title("Circular City Index \nProvinces\nScheme = Quantiles", fontsize=20, y=1.01)
     # Remove axis clutter
@@ -308,6 +432,7 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     ## AXIS 1 ##
     # Get mean values per Autonomous Community (CAUC)
     gdf_AutComm = gdf.copy()
+    gdf_AutComm = gdf_AutComm[["CCI","Digitalization", "Energy_Climate_Resources", "Mobility", "Waste", "geometry"]]
     gdf_AutComm = gdf_AutComm.dissolve(by=gdf_AutComm.index.get_level_values('CTOT').str[0:2], aggfunc='mean')
 
     # select the axis where the map will go
@@ -320,10 +445,11 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
         legend=True,
         legend_kwds={'loc':'lower right'},
         figsize=(20, 20),
-        cmap="RdYlGn",
-        scheme="Quantiles",
-        k=4,
+        cmap="Blues", #cmap="RdYlGn",
+        scheme="NaturalBreaks", #scheme="Quantiles",
+        k=5 #k=4
     )
+
     # Set the axis title to the name of variable being plotted
     ax.set_title("Circular City Index \nAutonomous Communities\nScheme = Quantiles", fontsize=20, y=1.01)
     # Remove axis clutter
@@ -336,7 +462,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     plt.show()
 
     ### CCI Levels
-
     levels_variables = list(gdf_descriptive_main)[1:]
 
     f, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))
@@ -356,10 +481,10 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
             legend_kwds={'loc':'lower right'},
             #edgecolor=line_color(AREA_TO_PREDICT),
             linewidth=0,
-            cmap='RdYlGn',
             figsize=(20, 20),
-            scheme="Quantiles",
-            k=4,
+            cmap="Blues", #cmap="RdYlGn",
+            scheme="NaturalBreaks", #scheme="Quantiles",
+            k=5 #k=4
         )
 
         # Remove axis clutter
@@ -379,7 +504,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     plt.show()
 
     ### Key Performance Indicators (KPIs)
-
     kpi_variables = list(gdf_descriptive_KPIs)
     nrows_kpi = math.ceil(len(kpi_variables) / 2)
 
@@ -398,7 +522,7 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
             ax=ax,
             edgecolor=line_color(AREA_TO_PREDICT),
             linewidth=0,
-            cmap='RdYlGn',
+            cmap='Blues', # cmap='RdYlGn',
         )
         # Remove axis clutter
         ax.set_axis_off()
@@ -412,7 +536,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     plt.show()
 
     ### Highest scoring municipalities
-
     # highest municipality per level
     highest_MUN_per_level = pd.DataFrame(columns=['level', 'score','CTOT', 'Municipality', 'geometry'])
     target_columns = ['CCI','Digitalization', 'Energy_Climate_Resources', 'Mobility', 'Waste']
@@ -465,7 +588,7 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
 
         n=n+1
 
-    gdf_top_highest
+    top_highest_MUN
 
     # Read as GeoDataFrame
     gdf_top_highest = gpd.GeoDataFrame(top_highest_MUN)
@@ -502,7 +625,6 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
     plt.show()
 
     ### Lowest scoring municipalities
-
     # lowest municipality per level
     lowest_MUN_per_level = pd.DataFrame(columns=['level', 'score','CTOT', 'Municipality', 'geometry'])
     target_columns = ['CCI','Digitalization', 'Energy_Climate_Resources', 'Mobility', 'Waste']
@@ -554,7 +676,7 @@ def DescriptiveAnalysis(AREA_TO_PREDICT):
 
         n=n+1
 
-    gdf_top_lowest
+    top_lowest_MUN
 
 
     # Read as GeoDataFrame

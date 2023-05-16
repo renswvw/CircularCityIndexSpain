@@ -1,4 +1,3 @@
-# 05. Data Analytics - Global Spatial Autocorrelation
 import os
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -20,27 +19,27 @@ def GlobalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_
         warnings.filterwarnings("ignore")
 
     AREA_TO_PREDICT_dict = {
-    "Andalusia": "01", 
-    "Aragon": "02",
-    "Asturias": "03", 
-    "Balearic Islands": "04",
-    "Canarias": "05", 
-    "Cantabria": "06",
-    "Castile and Leon": "07", 
-    "Castille-La Mancha": "08",
-    "Catalonia": "09", 
-    "Valencia": "10",
-    "Extremadura": "11", 
-    "Galicia": "12",
-    "Madrid": "13", 
-    "Murcia": "14",
-    "Navarre": "15", 
-    "Basque Country": "16",
-    "La Rioja": "17",
-    "Ceuta": "18",
-    "Melilla": "19",
-    "Minor Plazas de Soberanía": "20",
-    }
+        "Andalusia": "01", 
+        "Aragon": "02",
+        "Asturias": "03", 
+        "Balearic Islands": "04",
+        "Canarias": "05", 
+        "Cantabria": "06",
+        "Castile and Leon": "07", 
+        "Castille-La Mancha": "08",
+        "Catalonia": "09", 
+        "Valencia": "10",
+        "Extremadura": "11", 
+        "Galicia": "12",
+        "Madrid": "13", 
+        "Murcia": "14",
+        "Navarre": "15", 
+        "Basque Country": "16",
+        "La Rioja": "17",
+        "Ceuta": "18",
+        "Melilla": "19",
+        "Minor Plazas de Soberanía": "20",
+        }
 
     ## Parameter Check
     # Create folders to store the data
@@ -155,7 +154,6 @@ def GlobalSpatialAutocorrelation(VARIABLE_TO_PREDICT, VARIABLE_TO_DROP, AREA_TO_
     w.transform = "R"
 
     ## Global Spatial Autocorrelation
-
     ### Spatial Lag
     # Apply geo_info spatial lag
     VARIABLE_TO_PREDICT_lag = VARIABLE_TO_PREDICT + '_lag'

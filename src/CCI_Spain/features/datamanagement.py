@@ -1,5 +1,3 @@
-# 01. Data Management (Pipeline)
-
 # Import modules
 from pathlib import Path
 import os
@@ -96,9 +94,9 @@ def DataManagement():
     UNEMPLOYMENT_BENEFITS_RAWDATA = DEMOGRAPHIC_RAW_FOLDER + 'UNEMPLOYMENT_BENEFITS_rawdata.xlsx'
     AGRICULTURE_RAWDATA = DEMOGRAPHIC_RAW_FOLDER + 'AGRICULTURE_rawdata.xlsx'
 
-
     # PART 1 - GENERAL MUNICIPAL DATA
     ## Administrative Boundaries
+
     # read as GeoDataFrame
     shp_municipality = gpd.read_file(ADMBOUND_RAWDATA_GML)
 
@@ -136,6 +134,7 @@ def DataManagement():
     file_name = 'AdmBound_interimdata' 
     data_format_shp = '.shp'
     data_format_gpkg = '.gpkg'
+
     export_name = file_name
 
     if SAVE_INTERIMDATA is True:
@@ -223,7 +222,9 @@ def DataManagement():
     # exports the dataframe into csv file with
     file_name = 'D1_interimdata'
     data_format = '.csv'
+
     export_name = file_name + data_format
+
     if SAVE_INTERIMDATA is True:
         df_D1.to_csv(INTERIM_FOLDER + export_name, index=False)
 
@@ -274,7 +275,9 @@ def DataManagement():
     # exports the dataframe into csv file with
     file_name = 'D2_interimdata'
     data_format = '.csv'
+
     export_name = file_name + data_format
+
     if SAVE_INTERIMDATA is True:
         df_D2.to_csv(INTERIM_FOLDER + export_name, index=False)
 
@@ -301,7 +304,9 @@ def DataManagement():
     # exports the dataframe into csv file with
     file_name = 'D3_interimdata'
     data_format = '.csv'
+
     export_name = file_name + data_format
+
     if SAVE_INTERIMDATA is True:
         df.to_csv(INTERIM_FOLDER + export_name, index=False)
 
@@ -364,12 +369,13 @@ def DataManagement():
     # exports the dataframe into csv file with
     file_name = 'D4_interimdata'
     data_format = '.csv'
+
     export_name = file_name + data_format
+
     if SAVE_INTERIMDATA is True:
         df_D4.to_csv(INTERIM_FOLDER + export_name, index=False)
 
     ## ECR1 & ECR2
-
     # read the raw excel file from the raw folder
     excel_file = ECR1_RAWDATA
     df = pd.read_excel(excel_file)
@@ -408,18 +414,18 @@ def DataManagement():
     df['Commitment_2050'] = df['Municipality'].apply(lambda str: any([(reqWord in str) for reqWord in df_2050]))
 
     # Assign value to all municipalities in list by creating condition for dataset merging later on
-        #['Commitment_Adaption'] = 0.1
-        #['Commitment_2020'] = 0.3
-        #['Commitment_2030'] = 0.6
-        #['Commitment_2050'] = 0.9
-
-    conditions_Adaption = [
-        (df['Commitment_Adaption'] == True),
-        (df['Commitment_Adaption'] == False)] 
+        #['Commitment_2020'] = 1 --> 0.25
+        #['Commitment_Adaption'] = 2 --> 0.5
+        #['Commitment_2030'] = 3 --> 0.75
+        #['Commitment_2050'] = 4 --> 1.0
 
     conditions_2020 = [
         (df['Commitment_2020'] == True),
-        (df['Commitment_2020'] == False)]    
+        (df['Commitment_2020'] == False)]
+
+    conditions_Adaption = [
+        (df['Commitment_Adaption'] == True),
+        (df['Commitment_Adaption'] == False)]     
 
     conditions_2030 = [
         (df['Commitment_2030'] == True),
@@ -430,19 +436,19 @@ def DataManagement():
         (df['Commitment_2050'] == False)]  
 
     # Create a list of values that must be assigned when condition is true or false
-    values_Adaption = [1, 0]
     values_2020 = [2, 0]
+    values_Adaption = [1, 0]
     values_2030 = [4, 0]
     values_2050 = [10, 0]
 
     # Create new column with binary assigning
-    df['Commitment_Adaption_Score'] = np.select(conditions_Adaption, values_Adaption)
     df['Commitment_2020_Score'] = np.select(conditions_2020, values_2020)
+    df['Commitment_Adaption_Score'] = np.select(conditions_Adaption, values_Adaption)
     df['Commitment_2030_Score'] = np.select(conditions_2030, values_2030)
     df['Commitment_2050_Score'] = np.select(conditions_2050, values_2050)
 
     # Sum of all scores to new total score in Column
-    df['ECR2'] =  df['Commitment_Adaption_Score'] + df['Commitment_2020_Score'] + df['Commitment_2030_Score'] + df['Commitment_2050_Score']
+    df['ECR2'] =  df['Commitment_2020_Score'] + df['Commitment_Adaption_Score'] + df['Commitment_2030_Score'] + df['Commitment_2050_Score']
 
     # Maximise output score to 1
     df.loc[df['ECR2'] == 1, 'ECR2'] = 0.1
@@ -460,6 +466,14 @@ def DataManagement():
     df.loc[df['ECR2'] == 15, 'ECR2'] = 1
     df.loc[df['ECR2'] == 16, 'ECR2'] = 0.9
     df.loc[df['ECR2'] == 17, 'ECR2'] = 1
+
+    # Maximise output score for ECR2
+    df.loc[df['ECR2'] == 0.4, 'ECR2'] = 2 # --> Mayors Adapt
+    df.loc[df['ECR2'] == 0.6, 'ECR2'] = 3 # --> 2030
+    df.loc[df['ECR2'] == 0.7, 'ECR2'] = 3 # --> 2030
+    df.loc[df['ECR2'] == 0.9, 'ECR2'] = 4 # --> 2050
+    df.loc[df['ECR2'] == 1.0, 'ECR2'] = 4 # --> 2050
+    df.loc[df['ECR2'] == 0.3, 'ECR2'] = 1 # --> 2020
 
     # filter columns that refer to 'ECR2' 
     df = df[[
@@ -598,7 +612,6 @@ def DataManagement():
         df_ECR2.to_csv(Path(INTERIM_FOLDER) / export_name, index=False)
 
     ## ECR4
-
     # create path for temporal dataset
     ECR4_TEMPORALDATA = ECR4_TEMPORAL_FOLDER + "interim_PM10_avg19.tif"
 
@@ -712,7 +725,6 @@ def DataManagement():
     shutil.rmtree(ECR4_TEMPORAL_FOLDER, ignore_errors=True)
 
     ## ECR5
-
     # create path for temporal dataset
     ECR5_TEMPORALDATA = ECR5_TEMPORAL_FOLDER + "nox_avg19.tif"
 
@@ -822,11 +834,7 @@ def DataManagement():
     if SAVE_INTERIMDATA is True:
         df_ECR5.to_csv(INTERIM_FOLDER + export_name, index=False)
 
-    # delete temporal folder (ECR5_TEMPORAL_FOLDER)
-    #shutil.rmtree(ECR5_TEMPORAL_FOLDER, ignore_errors=False, onerror=None)
-
     ## M1
-
     # read datasets into dataframe
     df_M1_raw = pd.read_csv(M1_RAWDATA)
     df_POP21 = pd.read_csv(POP21_INTERIMDATA)
@@ -869,7 +877,6 @@ def DataManagement():
         df_M1.to_csv((INTERIM_FOLDER) + export_name, index=False)
 
     ## M2
-
     # read datasets into dataframe
     df_M2_raw = pd.read_csv(M2_RAWDATA)
     df_POP21 = pd.read_csv(POP21_INTERIMDATA)
@@ -912,7 +919,6 @@ def DataManagement():
         df_M2.to_csv((INTERIM_FOLDER) + export_name, index=False)
 
     ## M3
-
     # read datasets into dataframe
     df_M3_raw = pd.read_csv(M3_RAWDATA)
     gdf_AdmBound = gpd.read_file(ADMBOUND_INTERIMDATA)
@@ -961,7 +967,6 @@ def DataManagement():
         df_M3.to_csv((INTERIM_FOLDER) + export_name, index=False)
 
     ## M4
-
     # read datasets into dataframe
     df_M4_raw = pd.read_csv(M4_RAWDATA)
     df_POP21 = pd.read_csv(POP21_INTERIMDATA)
@@ -1004,7 +1009,6 @@ def DataManagement():
         df_M4.to_csv((INTERIM_FOLDER) + export_name, index=False)
 
     ## W2
-
     # excel files in the path
     file_list = glob(W2_RAW_FOLDER + "/*.xlsx")
 
@@ -1015,14 +1019,13 @@ def DataManagement():
         df = pd.read_excel(file)
         excl_list.append(df)
 
-    # create a new dataframe to store the merged excel file.
+    # create a new DataFrame object to store the merged Excel file.
     excl_merged = pd.DataFrame()
 
-    # appends the data into the excl_merged 
+    # concatenate the data into the excl_merged DataFrame
     for excl_file in excl_list:
-            
-        excl_merged = excl_merged.append(
-        excl_file, ignore_index=True)
+        # concatenate the data to the excl_merged DataFrame
+        excl_merged = pd.concat([excl_merged, excl_file], ignore_index=True)
 
     # filter columns that refer to municipality name and kilograms waste
     df = excl_merged[[
@@ -1160,13 +1163,18 @@ def DataManagement():
                         'fuzzywuzzy_method': np.NAN}
 
 
-        fuzzywuzzy_W2 = fuzzywuzzy_W2.append(new_row, ignore_index=True)
+        # create a new DataFrame containing the dictionary as a row
+        new_row_df = pd.DataFrame([new_row])
+
+        # concatenate the new row to the existing DataFrame
+        fuzzywuzzy_W2 = pd.concat([fuzzywuzzy_W2, new_row_df], ignore_index=True)
 
         n = n+1
 
-    # filter columns that refer to municipality name and population
-    fuzzywuzzy_W2['W2_absolute'] = fuzzywuzzy_W2['W2']
+    # Calculate recycled waste in ton 
+    fuzzywuzzy_W2['W2_absolute'] = fuzzywuzzy_W2['W2'] / 1000
 
+    # filter columns that refer to municipality name and population
     df = fuzzywuzzy_W2[[
     'CTOT',
     'W2_absolute']]
@@ -1186,7 +1194,6 @@ def DataManagement():
     df_W2 = df_merge[['CTOT', 'W2_absolute']]
 
     # Normalize outcome to population of municipality
-
     # read datasets into dataframe
     df_POP21 = pd.read_csv(POP21_INTERIMDATA)
 
@@ -1211,7 +1218,7 @@ def DataManagement():
         'W2']]
 
     # exports the dataframe into csv file with
-    file_name = 'EXTRA_W2_interimdata'
+    file_name = 'W2_interimdata'
     data_format = '.csv'
 
     export_name = file_name + data_format
@@ -1220,7 +1227,6 @@ def DataManagement():
         df.to_csv(INTERIM_FOLDER + export_name, index=False)
 
     ## W3
-
     # excel files in the path
     file_list = glob(W3_RAW_FOLDER + "/*.xlsx")
 
@@ -1282,11 +1288,16 @@ def DataManagement():
     W3_location = INTERIM_FOLDER + 'W3_temporaldata.csv'
     df.to_csv(W3_location, index=False)
 
- 
+    # Clean dataset from stopwords and other punctuation marks
+    # ref: https://codereview.stackexchange.com/questions/249329/finding-the-most-frequent-words-in-pandas-dataframe
+
     nltk.download('punkt')
     nltk.download('stopwords')
 
     STOP_WORDS = stopwords.words()
+
+    # removing the emojies
+    # ref: https://www.kaggle.com/alankritamishra/covid-19-tweet-sentiment-analysis#Sentiment-analysis
     EMOJI_PATTERN = re.compile("["
                             u"\U0001F600-\U0001F64F"  # emoticons
                             u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -1472,9 +1483,7 @@ def DataManagement():
 
     if SAVE_INTERIMDATA is True:
         df.to_csv(INTERIM_FOLDER + export_name, index=False)
-
     # PART 3 - SOCIODEMOGRAPHIC & ECONOMIC DATA
-
     ## Income
 
     # read the raw csv file from the url
@@ -1512,9 +1521,8 @@ def DataManagement():
 
     if SAVE_INTERIMDATA is True:
         df_income.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
-
+        
     ## Demographic
-
     # read the raw excel file from the url
     df_demographic = pd.read_excel(DEMOGRAPHIC_RAWDATA)
 
@@ -1584,7 +1592,6 @@ def DataManagement():
         df_demographic.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## GINI
-
     # read the raw excel file from the url
     df_gini = pd.read_excel(GINI_RAWDATA)
 
@@ -1628,7 +1635,6 @@ def DataManagement():
         df_gini.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## Demographic growth
-
     # read the raw excel file from the url
     df_dem_growth = pd.read_excel(DEM_GROWTH_RAWDATA)
 
@@ -1664,7 +1670,6 @@ def DataManagement():
         df_dem_growth.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## Economy - total companies by sector
-
     # read the raw excel file from the url
     df_economy_company = pd.read_excel(ECONOMIC_COMPANY_RAWDATA)
 
@@ -1724,7 +1729,6 @@ def DataManagement():
 
     if SAVE_INTERIMDATA is True:
         df_economy_company.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
-
     ## Outstanding debt of Municipality
 
     # read the raw excel file
@@ -1764,7 +1768,6 @@ def DataManagement():
         df_debt_MUN.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## Population (per gender)
-
     # read the raw excel file from the url
     df_pop_gender = pd.read_excel(POP_GENDER_RAWDATA)
 
@@ -1798,7 +1801,6 @@ def DataManagement():
         df_pop_gender.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## Residential buildings
-
     # read the raw excel file from the url
     df_residential_buildings = pd.read_excel(RESIDENTIAL_BUILDINGS_RAWDATA)
 
@@ -1834,7 +1836,6 @@ def DataManagement():
         df_residential_buildings.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## Tourist houses
-
     # read the raw excel file from the url
     df_tourist_houses = pd.read_excel(TOURIST_HOUSES_RAWDATA)
 
@@ -1867,7 +1868,6 @@ def DataManagement():
         df_tourist_houses.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
 
     ## Unemployment benefits
-
     # read the raw excel file from the url
     df_unemployment_benefits = pd.read_excel(UNEMPLOYMENT_BENEFITS_RAWDATA)
 
@@ -1900,7 +1900,6 @@ def DataManagement():
 
     if SAVE_INTERIMDATA is True:
         df_unemployment_benefits.to_csv(INTERIM_DEMOGRAPHIC_FOLDER + export_name, index=False)
-
     ## Agriculture
 
     # read the raw excel file from the url
