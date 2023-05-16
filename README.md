@@ -31,6 +31,10 @@ _Circular City Index for Spain - Per CCI level:_
 _Local Moran's I Cluster Map:_
 ![moranI](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/441257ce-f9a4-495d-a142-8d20d243ea27)
 
+_Descriptive Analysis of population size of municipalities:_
+![distr_all](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/4326da1f-654d-44fa-99b0-97e6917aa59d) ![distr_level](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/79246d6f-98b9-46fc-b9df-ab205a7201f3)
+
+
 ### GWR Model
 _Most imporant feature per municipality:_
 ![most_important_features](https://github.com/renswvw/CircularCityIndexSpain/assets/94464752/fc54b149-de63-4341-a725-933b90cc3d66)
